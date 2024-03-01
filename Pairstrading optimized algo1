@@ -1,0 +1,74 @@
+#imports
+
+import scipy.stats as scipy
+from scipy.stats import norm
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import yfinance as yf
+
+
+S1=yf.Ticker('QQQ')
+S2=yf.Ticker('SPY')
+
+end='2024-02-28'
+start='2023-04-28'
+
+S1data=S1.history(interval='1d',start=start,end=end)
+S2data=S2.history(interval='1d',start=start,end=end)
+
+S1data, S2data=S1data.drop(
+    ['Dividends','Stock Splits'],axis=1),S2data.drop( ['Dividends','Stock Splits'],axis=1)
+S1data
+
+#proof of mean reversion eg. correlation & low hurst exponent
+
+
+plt.scatter(S1data['Close'],S2data['Close'])
+plt.title('Scatter plot of Close')
+plt.show()
+
+cor=pd.DataFrame()
+
+cor['S1'],cor['S2']=S1data['Close'],S2data['Close']
+
+covcoe=cor['S1'].cov(other=cor['S2'])/(cor['S1'].std()*cor['S2'].std())
+
+
+print('high correlation of:',covcoe) 
+
+
+o=cor['S2'].iloc[0]-cor['S1'].iloc[0]
+cor['o']=cor['S2']-cor['S1']
+plt.plot(cor)
+plt.show()
+
+
+#finding the hurst exponent
+
+#pairs
+
+o=pd.DataFrame()
+
+
+r=S1data['Close'].iloc[0]/S2data['Close'].iloc[0]
+
+o['Close']=S1data['Close']-r*S2data['Close']
+
+def hurst(ts, N_lag=100):
+    lags=np.arange(2,100)
+    
+    tau=[np.sqrt(np.std(ts[lag:]- ts[:-lag])) for lag in lags]
+         
+    poly=np.polyfit(np.log(lags),np.log(tau),1)
+    return poly[0]*2
+
+hursts=o['Close'].values
+print('hurst exponents is',hurst(hursts),' >0.5 - a very high likelyhood of mean reversion in the timeseries')
+
+plt.plot(o, 'k')
+plt.grid(True)
+plt.show()
+
+#kesken
